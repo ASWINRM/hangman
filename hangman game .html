@@ -1,0 +1,345 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    
+    <title>Hangman</title>
+  </head>
+  <style>
+
+@import url('https://fonts.googleapis.com/css2?family=Fontdiner+Swanky&family=Pangolin&family=Piedra&family=Special+Elite&display=swap');
+
+      * {
+  box-sizing: border-box;
+}
+
+body {
+  background-color:#DCD12A;
+        align-items: center;
+        justify-content: center;
+        display:flex;
+        flex-direction: column;
+        height:80vh;
+}
+
+h1 {
+  font-family:piedra;
+        color:black;
+        margin-top: 70px;
+}
+
+.intro{
+  font-family: piedra;
+        font-size: 30px;
+        align-items:center ;
+        text-shadow: steelblue;
+}
+
+.game-container {
+  padding: 20px 30px;
+  position: relative;
+  margin: auto;
+  height: 350px;
+  width: 450px;
+}
+
+.figure-container {
+  fill: transparent;
+     stroke: #FF7F00;
+     stroke-width: 8px;
+     stroke-linecap: round;
+}
+
+.figure-part {
+  display: none;
+}
+
+.wrong-letters-container {
+  position:absolute;
+        top:20px;
+        right:20px;
+        display:flex;
+        flex-direction:column;
+        text-align:right;
+        display:none;
+}
+
+.wrong-letters-container p {
+  margin: 0 0 5px;
+}
+
+.wrong-letters-container span {
+  font-size: 24px;
+}
+
+.word {
+  display: flex;
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  
+}
+
+.letter {
+  display:flex;
+  border-bottom: 3px solid brown;
+  display: inline-flex;
+  font-size: 30px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 3px;
+  height: 50px;
+  width: 20px;
+               
+}
+
+
+.popup-container {
+  background-color:rgba(0,0,0,0.3);
+         top:0;
+         bottom:0;
+         right:0;
+         left:0;
+         align-items:center;
+         justify-content:center;
+         display:flex;
+         top:20%;
+         right:50%;
+         bottom:80%;
+         display:none;
+}
+
+.popup {
+  background-color:#2980b9;
+         color:white;
+         box-shadow:0 10px 15px 3px rgba(0,0,0,0.3);
+         padding:30px;
+         text-align:center;
+}
+
+.popup button {
+  background-color:white;
+         color:#2980b9;
+         padding:5px 5px 5px 5px;
+         align-items:center;
+         justify-content:center;
+         width:200px;
+         height:30px;
+         font-size:15px;
+         cursor:pointer;
+         border-radius: 3px;
+         border-color: rgba(0,0,0,0.3);
+}
+
+.popup button:active {
+  transform: scale(0.98);
+}
+
+.popup button:focus {
+  outline: 0;
+}
+
+.notification-container {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px 10px 0 0;
+  padding: 15px 20px;
+  position: absolute;
+  bottom: -50px;
+  transition: transform 0.3s ease-in-out;
+}
+
+.notification-container p {
+  margin: 0;
+}
+
+.notification-container.show {
+  transform: translateY(-50px);
+}
+  </style>
+  <body>
+    <h1>Hangman</h1>
+    <p class="intro">Find the hidden word - Enter a letter</p>
+    <div class="game-container">
+      <svg height="250" width="200" class="figure-container">
+        <!-- Rod -->
+        <line x1="60" y1="20" x2="140" y2="20" />
+        <line x1="140" y1="20" x2="140" y2="50" />
+        <line x1="60" y1="20" x2="60" y2="230" />
+        <line x1="20" y1="230" x2="100" y2="230" />
+
+        <!-- Head -->
+        <circle cx="140" cy="70" r="20" class="figure-part" />
+        <!-- Body -->
+        <line x1="140" y1="90" x2="140" y2="150" class="figure-part" />
+        <!-- Arms -->
+        <line x1="140" y1="120" x2="120" y2="100" class="figure-part" />
+        <line x1="140" y1="120" x2="160" y2="100" class="figure-part" />
+        <!-- Legs -->
+        <line x1="140" y1="150" x2="120" y2="180" class="figure-part" />
+        <line x1="140" y1="150" x2="160" y2="180" class="figure-part" />
+      </svg>
+
+      <div class="wrong-letters-container">
+        <div id="wrong-letters"></div>
+      </div>
+
+      <div class="word" id="word"></div>
+    </div>
+
+    <!-- Container for final message -->
+    <div class="popup-container" id="popup-container">
+      <div class="popup">
+        <h2 id="final-message"></h2>
+        <h3 id="final-message-reveal-word"></h3>
+        <button id="play-button">Play Again</button>
+        <button onclick="grid()">Back</button>
+
+      </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification-container" id="notification-container">
+      <p>You have already entered this letter</p>
+    </div>
+
+    <script>
+        const wordEl = document.getElementById('word');
+const wrongLettersEl = document.getElementById('wrong-letters');
+const playAgainBtn = document.getElementById('play-button');
+const popup = document.getElementById('popup-container');
+const notification = document.getElementById('notification-container');
+const finalMessage = document.getElementById('final-message');
+const finalMessageRevealWord = document.getElementById('final-message-reveal-word');
+const backbtn=document.getElementById("back");
+
+const figureParts = document.querySelectorAll('.figure-part');
+
+const words = ['netflix', 'programming', 'quarantine', 'corona','javascript','creativity','project'];
+
+let selectedWord = words[Math.floor(Math.random() * words.length)];
+
+let playable = true;
+
+const correctLetters = ['a','r','o','g','i','e'];
+const wrongLetters = [];
+
+// Show hidden word
+function displayWord() {
+	wordEl.innerHTML = `
+    ${selectedWord
+			.split("")
+			.map(
+				letter => `
+          <span class="letter">
+            ${correctLetters.includes(letter) ? letter : ''}
+          </span>
+        `
+			)
+			.join('')}
+  `;
+
+	const innerWord = wordEl.innerText.replace(/[ \n]/g, '');
+
+	if (innerWord === selectedWord) {
+		finalMessage.innerText = 'Congratulations! You won! 😃';
+		popup.style.display = 'flex';
+
+		playable = false;
+	}
+}
+
+// Update the wrong letters
+function updateWrongLettersEl() {
+	// Display wrong letters
+	wrongLettersEl.innerHTML = `
+    ${wrongLetters.length > 0 ? '<p>Wrong</p>' : ''}
+    ${wrongLetters.map(letter => `<span>${letter}</span>`)}
+  `;
+
+	// Display parts
+	figureParts.forEach((part, index) => {
+		const errors = wrongLetters.length;
+
+		if (index < errors) {
+			part.style.display = 'block';
+		} else {
+			part.style.display = 'none';
+		}
+	});
+
+	// Check if lost
+	if (wrongLetters.length === figureParts.length) {
+		finalMessage.innerText = 'Unfortunately you lost. 😕';
+		finalMessageRevealWord.innerText = `...the word was: ${selectedWord}`;
+		popup.style.display = 'flex';
+
+		playable = false;
+	}
+}
+
+// Show notification
+function showNotification() {
+	notification.classList.add('show');
+
+	setTimeout(() => {
+		notification.classList.remove('show');
+	}, 2000);
+}
+
+// Keydown letter press
+window.addEventListener('keydown', e => {
+	if (playable) {
+		if (e.keyCode >= 65 && e.keyCode <= 90) {
+			const letter = e.key.toLowerCase();
+
+			if (selectedWord.includes(letter)) {
+				if (!correctLetters.includes(letter)) {
+					correctLetters.push(letter);
+
+					displayWord();
+				} else {
+					showNotification();
+				}
+			} else {
+				if (!wrongLetters.includes(letter)) {
+					wrongLetters.push(letter);
+
+					updateWrongLettersEl();
+				} else {
+					showNotification();
+				}
+			}
+		}
+	}
+});
+
+// Restart game and play again
+playAgainBtn.addEventListener('click', () => {
+	playable = true;
+
+	//  Empty arrays
+	correctLetters.splice(0);
+  correctLetters.push('o','p','a','r','g','i','e');
+	wrongLetters.splice(0);
+
+	selectedWord = words[Math.floor(Math.random() * words.length)];
+
+	displayWord();
+
+	updateWrongLettersEl();
+
+	popup.style.display = 'none';
+});
+
+function grid(){
+  location.replace("file:///C:/Users/hp/Desktop/grid.html");
+}
+
+displayWord();
+
+
+    </script>
+  </body>
+</html>
